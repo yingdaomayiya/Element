@@ -45,10 +45,11 @@ pipeline {
         APP_MODULE = 'app'
         PGYER_INSTALL_TYPE = '1'
 
-        // Jenkins 打包任务使用 JDK 17
-        // 注意：JAVA_HOME 写到 jdk 根目录，不要写到 /bin/java
+        // JDK 17 根目录，不要写到 /bin/java
         JAVA_HOME = '/usr/local/jdk/jdk-17.0.13'
-        PATH+JDK17 = '/usr/local/jdk/jdk-17.0.13/bin'
+
+        // 让 Jenkins 当前任务优先使用 JDK 17
+        PATH = "/usr/local/jdk/jdk-17.0.13/bin:${env.PATH}"
     }
 
     stages {
@@ -71,7 +72,7 @@ pipeline {
                             echo "========== Gradle 环境 =========="
                             chmod +x ./gradlew
 
-                            # 停止旧的 Gradle Daemon，避免继续复用 Java 8
+                            # 停止旧 Gradle Daemon，避免复用 Java 8
                             ./gradlew --stop || true
 
                             ./gradlew --version
