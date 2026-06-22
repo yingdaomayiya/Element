@@ -212,11 +212,38 @@ public class PgyerUploader {
     }
 
     private static String unescape(String value) {
-        return value
-            .replace("\\\"", "\"")
-            .replace("\\\\", "\\")
-            .replace("\\n", "\n")
-            .replace("\\r", "\r");
+        StringBuilder result = new StringBuilder(value.length());
+        for (int index = 0; index < value.length(); index++) {
+            char current = value.charAt(index);
+            if (current != '\\' || index + 1 >= value.length()) {
+                result.append(current);
+                continue;
+            }
+
+            char escaped = value.charAt(++index);
+            switch (escaped) {
+                case '"' -> result.append('"');
+                case '\\' -> result.append('\\');
+                case '/' -> result.append('/');
+                case 'b' -> result.append('\b');
+                case 'f' -> result.append('\f');
+                case 'n' -> result.append('\n');
+                case 'r' -> result.append('\r');
+                case 't' -> result.append('\t');
+                case 'u' -> {
+                    if (index + 4 >= value.length()) {
+                        throw new IllegalArgumentException("无效的 JSON Unicode 转义：" + value);
+                    }
+                    String hex = value.substring(index + 1, index + 5);
+                    result.append((char) Integer.parseInt(hex, 16));
+                    index += 4;
+                }
+                default -> throw new IllegalArgumentException(
+                    "不支持的 JSON 转义：\\" + escaped
+                );
+            }
+        }
+        return result.toString();
     }
 
     private static String escape(String value) {
