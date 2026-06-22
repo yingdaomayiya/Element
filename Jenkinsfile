@@ -48,8 +48,12 @@ pipeline {
         // JDK 17 根目录，不要写到 /bin/java
         JAVA_HOME = '/usr/local/jdk/jdk-17.0.13'
 
-        // 让 Jenkins 当前任务优先使用 JDK 17
-        PATH = "/usr/local/jdk/jdk-17.0.13/bin:${env.PATH}"
+        // Jenkins 服务器已安装的 Android SDK
+        ANDROID_HOME = '/opt/android-sdk'
+        ANDROID_SDK_ROOT = '/opt/android-sdk'
+
+        // 让 Jenkins 当前任务优先使用指定的 JDK 和 Android SDK 工具
+        PATH = "/usr/local/jdk/jdk-17.0.13/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:${env.PATH}"
     }
 
     stages {
@@ -69,6 +73,27 @@ pipeline {
                             which java
                             java -version
 
+                            echo "========== Android SDK 环境 =========="
+                            echo "ANDROID_HOME=$ANDROID_HOME"
+                            echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+
+                            test -d "$ANDROID_HOME" || {
+                                echo "Android SDK 目录不存在：$ANDROID_HOME"
+                                exit 1
+                            }
+                            test -d "$ANDROID_HOME/platforms/android-35" || {
+                                echo "缺少 Android SDK Platform 35"
+                                exit 1
+                            }
+                            test -d "$ANDROID_HOME/build-tools/35.0.0" || {
+                                echo "缺少 Android SDK Build Tools 35.0.0"
+                                exit 1
+                            }
+
+                            # local.properties 仅在 Jenkins 工作区临时生成，不提交到 Git
+                            printf 'sdk.dir=%s\n' "$ANDROID_HOME" > local.properties
+                            cat local.properties
+
                             echo "========== Gradle 环境 =========="
                             chmod +x ./gradlew
 
@@ -83,6 +108,11 @@ pipeline {
                             echo JAVA_HOME=%JAVA_HOME%
                             where java
                             java -version
+
+                            echo ========== Android SDK 环境 ==========
+                            echo ANDROID_HOME=%ANDROID_HOME%
+                            echo sdk.dir=%ANDROID_HOME%>local.properties
+                            type local.properties
 
                             echo ========== Gradle 环境 ==========
                             .\\gradlew.bat --stop

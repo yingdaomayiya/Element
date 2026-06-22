@@ -13,6 +13,24 @@
 
 项目始终使用仓库内的 Gradle Wrapper，不依赖 Jenkins 全局 Gradle。
 
+当前 Jenkinsfile 使用以下服务器路径：
+
+```text
+JAVA_HOME=/usr/local/jdk/jdk-17.0.13
+ANDROID_HOME=/opt/android-sdk
+ANDROID_SDK_ROOT=/opt/android-sdk
+```
+
+构建开始时会检查以下目录，并在工作区自动生成 `local.properties`：
+
+```text
+/opt/android-sdk/platforms/android-35
+/opt/android-sdk/build-tools/35.0.0
+local.properties: sdk.dir=/opt/android-sdk
+```
+
+`local.properties` 已被 `.gitignore` 排除，不会提交到仓库。
+
 ## Jenkins Credentials
 
 在 Jenkins 的 Credentials 中创建以下凭据，ID 必须与表格一致：
