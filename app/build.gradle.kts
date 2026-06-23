@@ -4,20 +4,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-val buildEnv = providers.gradleProperty("buildEnv").orElse("dev").get()
 val ciVersionCode = providers.gradleProperty("ciVersionCode").orNull?.toIntOrNull()
 val ciVersionName = providers.gradleProperty("ciVersionName").orNull
 val requireReleaseSigning = providers.gradleProperty("requireReleaseSigning")
     .orElse("false")
     .map(String::toBoolean)
     .get()
-
-val baseUrl = when (buildEnv) {
-    "dev" -> "https://dev.example.com/"
-    "test" -> "https://test.example.com/"
-    "prod" -> "https://api.example.com/"
-    else -> error("不支持的 buildEnv=$buildEnv，可选值：dev、test、prod")
-}
 
 android {
     namespace = "com.example.remotedabao"
@@ -61,15 +53,40 @@ android {
         versionName = ciVersionName ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "BUILD_ENV", "\"$buildEnv\"")
-        buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+    }
+
+    flavorDimensions += "environment"
+
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            buildConfigField("String", "BUILD_ENV", "\"dev\"")
+            buildConfigField("String", "BASE_URL", "\"https://dev.example.com/\"")
+        }
+
+        // AGP 保留了以 test 开头的 Flavor 名，因此测试环境内部使用 qa。
+        create("qa") {
+            dimension = "environment"
+            applicationIdSuffix = ".test"
+            versionNameSuffix = "-test"
+            buildConfigField("String", "BUILD_ENV", "\"test\"")
+            buildConfigField("String", "BASE_URL", "\"https://test.example.com/\"")
+        }
+
+        create("prod") {
+            dimension = "environment"
+            buildConfigField("String", "BUILD_ENV", "\"prod\"")
+            buildConfigField("String", "BASE_URL", "\"https://api.example.com/\"")
+        }
     }
 
     buildTypes {
         debug {
             isDebuggable = true
             applicationIdSuffix = ".debug"
-            versionNameSuffix = "-$buildEnv-debug"
+            versionNameSuffix = "-debug"
         }
 
         release {

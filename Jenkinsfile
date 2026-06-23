@@ -17,9 +17,9 @@ pipeline {
         )
 
         choice(
-            name: 'BUILD_ENV',
+            name: 'FLAVOR',
             choices: ['dev', 'test', 'prod'],
-            description: '应用运行环境'
+            description: '选择产品环境 Flavor'
         )
 
         booleanParam(
@@ -126,8 +126,12 @@ pipeline {
         stage('Build APK') {
             steps {
                 script {
+                    // Android Gradle Plugin 不允许 Flavor 名以 test 开头。
+                    // Jenkins 对用户仍显示 test，构建时映射到内部 qa Flavor。
+                    def gradleFlavor = params.FLAVOR == 'test' ? 'qa' : params.FLAVOR
+                    def flavor = gradleFlavor.capitalize()
                     def buildType = params.BUILD_TYPE.capitalize()
-                    def taskName = ":${env.APP_MODULE}:assemble${buildType}"
+                    def taskName = ":${env.APP_MODULE}:assemble${flavor}${buildType}"
 
                     def versionName = params.VERSION_NAME?.trim()
                         ? params.VERSION_NAME.trim()
@@ -141,7 +145,6 @@ pipeline {
                         'clean',
                         taskName,
                         '--console=plain',
-                        "-PbuildEnv=${params.BUILD_ENV}",
                         "-PciVersionCode=${env.BUILD_NUMBER}",
                         "-PciVersionName=${versionName}"
                     ]
@@ -174,10 +177,13 @@ pipeline {
 
         stage('Archive APK') {
             steps {
-                archiveArtifacts(
-                    artifacts: "${env.APP_MODULE}/build/outputs/apk/${params.BUILD_TYPE}/**/*.apk",
-                    fingerprint: true
-                )
+                script {
+                    def gradleFlavor = params.FLAVOR == 'test' ? 'qa' : params.FLAVOR
+                    archiveArtifacts(
+                        artifacts: "${env.APP_MODULE}/build/outputs/apk/${gradleFlavor}/${params.BUILD_TYPE}/**/*.apk",
+                        fingerprint: true
+                    )
+                }
             }
         }
 
@@ -196,14 +202,15 @@ pipeline {
                         "PGYER_BUILD_DESC=${params.BUILD_DESC}"
                     ]) {
                         script {
-                            def apkDir = "${env.APP_MODULE}/build/outputs/apk/${params.BUILD_TYPE}"
+                            def gradleFlavor = params.FLAVOR == 'test' ? 'qa' : params.FLAVOR
+                            def apkDir = "${env.APP_MODULE}/build/outputs/apk/${gradleFlavor}/${params.BUILD_TYPE}"
 
                             if (isUnix()) {
-                                sh '''
+                                sh """
                                     echo "========== 上传蒲公英 =========="
-                                    echo "APK_DIR=${APP_MODULE}/build/outputs/apk/${BUILD_TYPE}"
+                                    echo "APK_DIR=${apkDir}"
                                     java -version
-                                '''
+                                """
 
                                 sh "java ci/PgyerUploader.java '${apkDir}'"
                             } else {

@@ -56,7 +56,7 @@ local.properties: sdk.dir=/opt/android-sdk
 可选参数：
 
 - `BUILD_TYPE`：`debug` / `release`
-- `BUILD_ENV`：`dev` / `test` / `prod`
+- `FLAVOR`：`dev` / `test` / `prod`
 - `UPLOAD_PGYER`：是否上传蒲公英
 - `VERSION_NAME`：为空时自动使用 `1.0.<Jenkins BUILD_NUMBER>`
 - `BUILD_DESC`：蒲公英更新说明
@@ -68,8 +68,7 @@ Jenkins 构建号会自动作为 Android `versionCode`。
 Debug：
 
 ```powershell
-.\gradlew.bat clean :app:assembleDebug `
-  -PbuildEnv=test `
+.\gradlew.bat clean :app:assembleQaDebug `
   -PciVersionCode=2 `
   "-PciVersionName=1.0.2"
 ```
@@ -82,18 +81,43 @@ $env:ANDROID_KEYSTORE_PASSWORD = "store-password"
 $env:ANDROID_KEY_ALIAS = "release"
 $env:ANDROID_KEY_PASSWORD = "key-password"
 
-.\gradlew.bat clean :app:assembleRelease `
-  -PbuildEnv=prod `
+.\gradlew.bat clean :app:assembleProdRelease `
   -PciVersionCode=2 `
   "-PciVersionName=1.0.2" `
   -PrequireReleaseSigning=true
 ```
 
-APK 位于 `app/build/outputs/apk/<debug|release>/`。
+可用构建任务：
 
-## 环境地址
+```text
+:app:assembleDevDebug
+:app:assembleDevRelease
+:app:assembleQaDebug
+:app:assembleQaRelease
+:app:assembleProdDebug
+:app:assembleProdRelease
+```
 
-`app/build.gradle.kts` 中预留了 `dev/test/prod` 的 `BASE_URL` 示例地址。接入真实业务前，请将三个 `example.com` 地址替换为实际接口地址；应用代码可通过 `BuildConfig.BASE_URL` 和 `BuildConfig.BUILD_ENV` 读取。
+APK 位于 `app/build/outputs/apk/<flavor>/<debug|release>/`。
+
+## Product Flavors
+
+项目包含三个正式 Flavor：
+
+| Flavor | Application ID 后缀 | 环境 |
+| --- | --- | --- |
+| `dev` | `.dev` | 开发环境 |
+| Jenkins `test` / Gradle `qa` | `.test` | 测试环境 |
+| `prod` | 无 | 正式环境 |
+
+Debug 构建还会附加 `.debug`，例如 `devDebug` 的包名为
+`com.example.remotedabao.dev.debug`，可与正式包同时安装。
+
+Android Gradle Plugin 不允许 Flavor 名以 `test` 开头，因此测试环境在
+Gradle 内部命名为 `qa`。Jenkins 页面仍选择 `test`，流水线会自动构建
+`assembleQaDebug` 或 `assembleQaRelease`。
+
+`app/build.gradle.kts` 中预留了三个 Flavor 的 `BASE_URL` 示例地址。接入真实业务前，请将 `example.com` 替换为实际接口地址；应用代码可通过 `BuildConfig.BASE_URL` 和 `BuildConfig.BUILD_ENV` 读取。
 
 ## 手表项目
 
