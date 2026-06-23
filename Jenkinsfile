@@ -31,7 +31,7 @@ pipeline {
         string(
             name: 'VERSION_NAME',
             defaultValue: '',
-            description: '版本名；留空时使用 1.0.Jenkins构建号'
+            description: '留空时自动生成 1.0.<Jenkins构建号>，也可手动填写'
         )
 
         text(
@@ -140,6 +140,18 @@ pipeline {
                     if (!(versionName ==~ /[0-9A-Za-z._-]+/)) {
                         error 'VERSION_NAME 只能包含数字、字母、点、下划线和连字符'
                     }
+
+                    currentBuild.displayName =
+                        "#${env.BUILD_NUMBER} ${params.FLAVOR}-${params.BUILD_TYPE} v${versionName}"
+                    currentBuild.description =
+                        "Flavor=${params.FLAVOR}, BuildType=${params.BUILD_TYPE}, Version=${versionName}"
+
+                    echo '========== 本次构建信息 =========='
+                    echo "FLAVOR=${params.FLAVOR}"
+                    echo "BUILD_TYPE=${params.BUILD_TYPE}"
+                    echo "VERSION_NAME=${versionName}"
+                    echo "VERSION_CODE=${env.BUILD_NUMBER}"
+                    echo "GRADLE_TASK=${taskName}"
 
                     def gradleArgs = [
                         'clean',

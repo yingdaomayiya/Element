@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -111,6 +113,25 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    applicationVariants.all {
+        val currentVariant = this
+        outputs.all {
+            val currentOutput = this as BaseVariantOutputImpl
+            currentOutput.outputFileName = buildString {
+                append(rootProject.name)
+                append('-')
+                append(currentVariant.flavorName)
+                append('-')
+                append(currentVariant.buildType.name)
+                append("-v")
+                append(currentVariant.versionName)
+                append('-')
+                append(currentVariant.versionCode)
+                append(".apk")
+            }
+        }
     }
 }
 
